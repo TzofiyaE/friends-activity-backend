@@ -1,0 +1,25 @@
+name: Daily Stats Refresh
+
+on:
+  schedule:
+    # Run daily at 1 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  refresh-stats:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run GraphQL refresh for all users
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "X-API-Key: ${{ secrets.API_KEY }}" \
+            "https://friends-activity-backend-production.up.railway.app/pipeline/v2/refreshAll")
+
+          echo "Completed with HTTP status: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+            echo "❌ Refresh failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "✅ Refresh completed successfully"
